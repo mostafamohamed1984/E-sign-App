@@ -53,7 +53,6 @@ const DocumentAllList: React.FC<AllTempletesProps> = ({ refreshTempletes, setRef
         });
 
         const result: ApiResponse = await response.json();
-
         if (response.status === 200 && result.message.data.length > 0) {
           setDocuments(result.message.data);
           setFilteredDocuments(result.message.data); // initial load shows all

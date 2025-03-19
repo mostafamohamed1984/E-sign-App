@@ -25,8 +25,7 @@ import ConfirmDeleteModal from '../../../components/ConfirmDeleteModal';
 import {BlobToBase64} from '../helper/BlobToBase64'
 import {Base64ToBlob} from '../helper/Base64ToBlob'
 import OpenSSLAllList from '../OpenSSL/OpenSSLAllList';
-
-
+import RejectDoc from '../../../components/RejectDoc';
 interface User {
   email: string;
   status: 'unseen' | 'open' | 'close';
@@ -79,6 +78,7 @@ const Signer = () => {
   const [emailData, setEmailData] = useState<EmailStatus | null>(null);
   const [assignedUsers, setAssignedUsers] = useState<string[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   const [datapdf , setdatapdf] = useState<BasePDFInterface[]>(BlankDatapdf);
   const [selectedComponent, setSelectedComponent] = useState<SelectedComponent>(null);
   const moveableRef = useRef<Moveable | null>(null);
@@ -87,6 +87,7 @@ const Signer = () => {
   const location = useLocation();
   const [assignedUser , setAssignedUser] = useState<String[]>([])
   const [isCompleted, setIsCompleted] = useState(0);
+  const [isRejected, setIsRejected] = useState(0);
   const { documentData } = location.state as { documentData?: DocumentList } || {};
   const [openSSL_List, setOpenSSL_List] = useState<OpenSSLKey[]>([]);
   const [openSSLname, setOpenSSLname] = useState<string>('')
@@ -131,6 +132,7 @@ useEffect(()=>{
           const data = await response.json();
           setAssignedUsers(data.message.data.assigned_users || []);
           setOpenSSL_List(data.message.data.opensslusedlist || []);
+          setIsRejected(data.message.data.isRejected || 0 )
           console.log('Data OPen SSL =======>',data.message.data.opensslusedlist)
 
           const assignedUsers: Record<string, User> = JSON.parse(data.message.data.assigned_users);
@@ -481,8 +483,34 @@ const showConfirmModal = () => {
   setIsModalVisible(true); 
 };
 
+const showRejectModal = () => {
+  setIsRejectModalVisible(true); 
+};
+const handleRejectCancel = () => {
+  setIsRejectModalVisible(false);
+};
 
+const handleRejectConfirm = () => {
+  // save OPenssl Aswell
+  // submitFinalDocument();
+  handleChangeStatus();
+  toast.success('Document rejected Successfully', {
+    position: "top-right",
+    autoClose: 500,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: "dark",
+    transition: Flip,
+  });
 
+  setTimeout(() => {
+    navigate('/inbox');
+  }, 1500);
+  setIsRejectModalVisible(false); 
+};
 const sendToAPI = async (updatedData: EmailStatus) => {
   
   const UserStatusUpdate = {
@@ -1017,6 +1045,12 @@ return (
           </p>
   </div>
 </div>
+{ isRejected == 1 && (
+  <div className='min-w-full bg-red-800 text-white p-2'>
+    Rejected Doument
+  </div>
+)}
+
 <div className={`${documentStatusUser ? '' : 'templete-main-div-signer'} `}>
 
   <div className="templete-app text-xs">
@@ -1034,7 +1068,7 @@ return (
         >
           Next
         </button>
-          { isCompleted == 1 && (
+          { isCompleted == 1 && isRejected == 0 &&(
             <>
             {/* Actual print Button */}
             {/* <button
@@ -1176,6 +1210,13 @@ return (
 >
   Submit
 </button>
+<button 
+  onClick={showRejectModal}
+  className="bg-[#c93737] text-white px-4 py-2 mb-4 border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42] transition-colors duration-300 rounded-tr-lg"
+>
+  Reject
+</button>
+
         <table className='w-full signer-table '>
           <thead>
             <tr className="bg-[#283C42] text-white">
@@ -1263,7 +1304,16 @@ return (
         message={"Are you sure you want to submit this document? After That You Can't Change or Edit Document !"}
         module={"Document Submit"}
       />
-
+      <RejectDoc
+        visible={isRejectModalVisible}
+        name={documentData.name} 
+        owner_name = {documentData.owner_email}
+        onCancel={handleRejectCancel}
+        onConfirm={handleRejectConfirm}
+        message={"Are you sure you want to Reject this document? You Can't Revert The Action"}
+        module={"Document Reject"}
+      />
+      
         
 {/* <SignerInput/> */}
 

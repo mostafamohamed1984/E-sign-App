@@ -22,7 +22,12 @@
   "iscompleted",
   "ismerged",
   "issignedverified",
-  "isrejected"
+  "reject_panel_section",
+  "rejected_by",
+  "column_break_vptj",
+  "isrejected",
+  "section_break_eors",
+  "reject_reason"
  ],
  "fields": [
   {
@@ -117,11 +122,34 @@
    "fieldname": "isrejected",
    "fieldtype": "Check",
    "label": "isRejected"
+  },
+  {
+   "fieldname": "reject_reason",
+   "fieldtype": "Text Editor",
+   "label": "Reject Reason"
+  },
+  {
+   "fieldname": "reject_panel_section",
+   "fieldtype": "Section Break",
+   "label": "Reject Panel"
+  },
+  {
+   "fieldname": "column_break_vptj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rejected_by",
+   "fieldtype": "Small Text",
+   "label": "Rejected By"
+  },
+  {
+   "fieldname": "section_break_eors",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-11 15:12:44.188705",
+ "modified": "2025-03-19 11:41:24.681866",
  "modified_by": "Administrator",
  "module": "Esign App",
  "name": "DocumentList",

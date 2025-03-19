@@ -74,6 +74,7 @@
             |-- Footer.tsx
             |-- Navbar_horizontal.tsx
             |-- Navbar_vertical.tsx
+            |-- RejectDoc.tsx
         |-- index.css
         |-- loading
             |-- BookAnimation.css

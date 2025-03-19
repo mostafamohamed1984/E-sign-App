@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Tooltip } from 'antd';
 import dayjs from '../helper/dayjsConfig';
+import { isRejected } from '@reduxjs/toolkit';
 
 const getStatusClasses = (status: string) => {
   switch (status) {
@@ -10,12 +11,16 @@ const getStatusClasses = (status: string) => {
       return 'bg-yellow-100 text-yellow-800';
     case 'Completed':
       return 'bg-green-100 text-green-800';
+    case 'Rejected':
+      return 'bg-gray-200 text-red-800';
     case 'unseen':
       return 'bg-red-500';
     case 'open':
       return 'bg-yellow-500';
     case 'close':
       return 'bg-green-500';
+    case 'rejected':
+      return 'bg-gray-500';
     default:
       return '';
   }
@@ -47,21 +52,25 @@ const SentModal: React.FC<{ modalContent: any; isModalVisible: boolean; handleMo
           <p className={`mb-4 ${statusClasses} inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium`}>
             {modalContent?.status}
           </p>
-
           <Tooltip
             title={
-              <div className='bg-[#283C42] rounded-md'>
-                {userList.map((user, index) => (
-                  <div key={index} className="flex bg-[#283C42] items-center space-x-2 text-white pl-2 pr-2 ">
-                    <div className={`w-2.5 h-2.5 rounded-full ${getStatusClasses(user.status)}`}></div>
-                    <span>{user.email} : {user.status}</span>
-                  </div>
-                ))}
+              <div className="bg-[#283C42] rounded-md">
+                {userList.map((user, index) => {
+                  const isRejected = user.email === modalContent?.rejected_by;
+                  const status = isRejected ? "reject" : user.status;
+
+                  return (
+                    <div key={index} className="flex bg-[#283C42] items-center space-x-2 text-white pl-2 pr-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${getStatusClasses(isRejected ? "rejected" : user.status)}`}></div>
+                      <span>{user.email} : {status}</span>
+                    </div>
+                  );
+                })}
               </div>
             }
             placement="top"
-           
           >
+
             <svg
               className="cursor-pointer"
               viewBox="0 0 24 24"
@@ -73,7 +82,7 @@ const SentModal: React.FC<{ modalContent: any; isModalVisible: boolean; handleMo
             </svg>
           </Tooltip>
         </div>
-
+            
         <div className="mb-4">
           <p className="mb-2 text-lg text-gray-600 px-4 font-bold tracking-tight">
             Description
@@ -82,9 +91,18 @@ const SentModal: React.FC<{ modalContent: any; isModalVisible: boolean; handleMo
             className="text-justify text-gray-500 leading-relaxed mt-2 mb-4 px-4"
             dangerouslySetInnerHTML={{ __html: modalContent?.description }}
           ></p>
-
-
         </div>
+        { modalContent?.isRejected == 1 && (
+            <div className="mb-4">
+            <p className="mb-2 text-lg text-gray-600 px-4 font-bold tracking-tight">
+              Reason
+            </p>
+            <p
+              className="text-justify text-gray-500 leading-relaxed mt-2 mb-4 px-4"
+              dangerouslySetInnerHTML={{ __html: modalContent?.reject_reason }}
+            ></p>
+          </div>
+        )}
         <p className="mt-4 px-4">
           <strong>Timestamp:</strong> {dayjs(modalContent?.timestamp).format('DD/MM/YYYY')} ({dayjs(modalContent?.timestamp).fromNow()})
         </p>

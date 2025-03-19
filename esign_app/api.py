@@ -641,7 +641,7 @@ def get_documents_list(user_mail):
     try:
         document_list = frappe.get_all(
             'DocumentList',
-            filters={'owner_email': user_mail , 'isnoteditable': 0},
+            filters={'owner_email': user_mail , 'isnoteditable': 0 },
             fields=['name','document_title', 'template_title', 'owner_email', 'document_created_at', 'isnoteditable']
         )
         return {'status': 200, 'data': document_list}
@@ -764,7 +764,7 @@ def get_documents_by_user(user_mail):
         documents_list = frappe.get_all(
             'DocumentList',
             filters={'isnoteditable': 1, 'assigned_users': ['like', f'%{user_mail}%']},
-            fields=['name', 'document_title', 'owner_email', 'document_created_at', 'assigned_users']
+            fields=['name', 'document_title', 'owner_email', 'document_created_at', 'assigned_users','isrejected']
         )
         return {'status': 200, 'data': documents_list}
     except Exception as e:
@@ -777,7 +777,7 @@ def sent_doc_by_user(user_mail):
         documents_list = frappe.get_all(
             'DocumentList',
             filters={'isnoteditable': 1, 'owner_email': user_mail},
-            fields=['document_subject','name', 'document_title', 'owner_email', 'document_created_at', 'assigned_users', 'description' ]
+            fields=['document_subject','name', 'document_title', 'owner_email', 'document_created_at', 'assigned_users', 'description' , 'isrejected','reject_reason','rejected_by']
         )
         return {'status': 200, 'data': documents_list}
     except Exception as e:
@@ -791,7 +791,8 @@ def get_assigned_users_list_check(user_document_name):
         doc_data = {
             'assigned_users': document.assigned_users,
             'iscompleted': document.iscompleted,
-            'opensslusedlist': document.opensslusedlist
+            'opensslusedlist': document.opensslusedlist,
+            'isRejected': document.isrejected
         }
         
         return {'status': 200, 'data': doc_data}
@@ -858,6 +859,24 @@ def submit_final_document(document_title,document_json_data,opensslusedlist):
     
     except Exception as e:
         return {'status': 500, 'message': str(e)}
+
+
+@frappe.whitelist(allow_guest=True)
+def reject_final_document(document_title,document_reason,document_owner):
+    try:
+        # Parse JSON data
+        doc = frappe.get_doc("DocumentList", document_title)
+        # doc.document_json_data = document_json_data
+        doc.reject_reason = document_reason
+        doc.rejected_by = document_owner
+        doc.isrejected = True
+        message = 'Document reject successfully'
+        doc.save()
+        return {'status': 200, 'message': message}
+    
+    except Exception as e:
+        return {'status': 500, 'message': str(e)}
+    
 # ++++ Save/Update Template End ++++++++++++
 @frappe.whitelist(allow_guest=True)
 def mergeAndPrintSave(document_title,validated_pdf):

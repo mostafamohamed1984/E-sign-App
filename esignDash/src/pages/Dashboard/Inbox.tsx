@@ -13,6 +13,7 @@ interface Document {
   document_created_at: string;
   assigned_users: string;
   template_title: string;
+  isrejected:boolean;
 }
 
 interface ApiResponse {
@@ -127,12 +128,19 @@ const Inbox = () => {
             const userStatus = Object.values(assignedUsers).find(user => user.email === email)?.status;
 
             let themeClass = "";
-            if (userStatus === "unseen") {
-              themeClass = "bg-[#283C42] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42] relative";
-            } else if (userStatus === "open") {
-              themeClass = "bg-[#283C42] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42]";
-            } else if (userStatus === "close") {
-              themeClass = "bg-[#283C42] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42] opacity-50";
+
+            if(!document.isrejected)
+            {
+              if (userStatus === "unseen") {
+                themeClass = "bg-[#283C42] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42] relative";
+              } else if (userStatus === "open") {
+                themeClass = "bg-[#283C42] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42]";
+              } else if (userStatus === "close") {
+                themeClass = "bg-[#283C42] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42] opacity-50";
+              }
+            }
+            else{
+              themeClass = "bg-[#de4343] text-white border-transparent hover:border-[#283C42] hover:bg-white hover:text-[#283C42] opacity-50";
             }
 
             return (

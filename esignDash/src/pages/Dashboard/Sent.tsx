@@ -4,15 +4,17 @@ import { selectEmail } from '../../redux/selectors/userSelector';
 import dayjs from './helper/dayjsConfig';
 import { Modal, Select } from 'antd';
 import SentModal from './Sent/SentModal';
+import { isRejected } from '@reduxjs/toolkit';
 
 const { Option } = Select;
 
 interface User {
   email: string;
-  status: 'unseen' | 'open' | 'close';
+  status: 'unseen' | 'open' | 'close' | 'rejected' ;
 }
 
 interface Document {
+  isrejected: boolean;
   name: string;
   document_title: string;
   owner_email: string;
@@ -20,6 +22,8 @@ interface Document {
   assigned_users: string;
   document_subject: string;
   description: string;
+  rejected_by?:string;
+  reject_reason?:HTMLBodyElement;
 }
 
 interface ApiResponse {
@@ -31,13 +35,16 @@ interface ApiResponse {
 
 interface Mail {
   id: number;
-  status: 'Unread' | 'Pending' | 'Completed';
+  status: 'Unread' | 'Pending' | 'Completed' | 'Rejected';
   documentTitle: string;
   subject: string;
   timestamp: string;
   description: string;
   assigned_users: string;
   name:string;
+  isRejected: boolean;
+  rejected_by?:string;
+  reject_reason?:HTMLBodyElement;
 }
 
 const Sent: React.FC = () => {
@@ -61,11 +68,10 @@ const Sent: React.FC = () => {
         });
 
         const result: ApiResponse = await response.json();
-        
         if (response.status === 200) {
           const processedMails = result.message.data.map((doc, index) => {
             const assignedUsers: Record<string, User> = JSON.parse(doc.assigned_users);
-            const statusCounts = { unseen: 0, open: 0, close: 0 };
+            const statusCounts = { unseen: 0, open: 0, close: 0, rejected:0 };
 
             Object.values(assignedUsers).forEach(user => {
               if (user.status in statusCounts) {
@@ -73,11 +79,17 @@ const Sent: React.FC = () => {
               }
             });
 
-            let finalStatus: 'Unread' | 'Pending' | 'Completed' = 'Completed';
-            if (statusCounts.unseen > 0) {
-              finalStatus = 'Unread';
-            } else if (statusCounts.open > 0) {
-              finalStatus = 'Pending';
+            let finalStatus: 'Unread' | 'Pending' | 'Completed' | 'Rejected' = 'Completed';
+            if(!doc.isrejected)
+            {
+              if (statusCounts.unseen > 0) {
+                finalStatus = 'Unread';
+              } else if (statusCounts.open > 0) {
+                finalStatus = 'Pending';
+              }
+            }
+            else{
+              finalStatus = 'Rejected';
             }
 
             return {
@@ -89,6 +101,9 @@ const Sent: React.FC = () => {
               timestamp: dayjs(doc.document_created_at).toISOString(),
               assigned_users: doc.assigned_users,
               name:doc.name,
+              isRejected:doc.isrejected,
+              rejected_by: doc.rejected_by,
+              reject_reason: doc.reject_reason,
             };
           });
 
@@ -121,6 +136,8 @@ const Sent: React.FC = () => {
         return mail.status === 'Completed';
       case 'unseen':
         return mail.status === 'Unread';
+      case 'rejected':
+        return mail.status === 'Rejected';
       default:
         return true;
     }
@@ -133,6 +150,7 @@ const Sent: React.FC = () => {
       case 'Unread': return 'bg-red-100 text-red-800';
       case 'Pending': return 'bg-yellow-100 text-yellow-800';
       case 'Completed': return 'bg-green-100 text-green-800';
+      case 'Rejected': return 'bg-gray-200 text-red-800';
       default: return '';
     }
   };
@@ -147,7 +165,7 @@ const Sent: React.FC = () => {
     setModalContent(null);
   };
   return (
-    <div className="container mx-auto p-1 pt-3 w-[73vw]">
+    <div className="mx-auto p-1 pt-3 w-[73vw] w-min-full">
       <div className="mb-4 flex gap-2 items-center max-w-10">
         <input
           type="text"
@@ -161,11 +179,12 @@ const Sent: React.FC = () => {
           <Option value="opened">Opened</Option>
           <Option value="completed">Completed</Option>
           <Option value="unseen">Unseen</Option>
+          <Option value="rejected">Rejected</Option>
         </Select>
       </div>
       <div className="bg-white shadow-md rounded-lg overflow-y-auto max-h-[85vh] doc-temp-scroll-container">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-[#283C42] text-white">
+          <thead className="bg-[#283C42] text-white sticky top-0 z-10">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">S.No</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
