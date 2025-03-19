@@ -44,31 +44,32 @@ $(document).on("app_ready", function () {
               console.log("Fetched Templates:", templates);
 
 
-              // API URL with dynamic values
-              let pdfUrl = `/api/method/frappe.utils.print_format.download_pdf?doctype=${doctype}&name=${docname}&format=Standard&no_letterhead=1&letterhead=No%20Letterhead&settings=%7B%7D&_lang=en`;
-              console.log('pdf url Loaded',pdfUrl)
-              // Fetch PDF and convert to base64
-              let pdfBase64 = "";
-              try {
-                let response = await fetch(pdfUrl);
-                let blob = await response.blob();
-                let reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = function () {
-                  pdfBase64 = reader.result.split(",")[1];
-                  console.log("PDF Base64:", pdfBase64);
-                };
-              } catch (error) {
-                console.error("Error fetching PDF:", error);
-              }
+              // // API URL with dynamic values
+              // let pdfUrl = `/api/method/frappe.utils.print_format.download_pdf?doctype=${doctype}&name=${docname}&format=Standard&no_letterhead=1&letterhead=No%20Letterhead&settings=%7B%7D&_lang=en`;
+              // console.log('pdf url Loaded',pdfUrl)
+              // // Fetch PDF and convert to base64
+              // let pdfBase64 = "";
+              // try {
+              //   let response = await fetch(pdfUrl);
+              //   let blob = await response.blob();
+              //   let reader = new FileReader();
+              //   reader.readAsDataURL(blob);
+              //   reader.onloadend = function () {
+              //     pdfBase64 = reader.result.split(",")[1];
+              //     console.log("PDF Base64:", pdfBase64);
+              //   };
+              // } catch (error) {
+              //   console.error("Error fetching PDF:", error);
+              // }
 
               let templateOptions = {};
               if (templates.length) {
                 templateOptions = Object.fromEntries(templates.map((t) => [t.label, t.value]));
               }
+              console.log("*************************",Object.keys(templateOptions))
               // show the dialog box 
               let dialog = new frappe.ui.Dialog({
-                title: "Send to eSign",
+                title: "Send to eSign test",
                 fields: [
                   {
                     fieldname: "user_details",
@@ -125,31 +126,137 @@ $(document).on("app_ready", function () {
                     default: docname,
                     fieldtype: "Data",
                     reqd: 1,
+                  },{
+                    fieldname: "letterhead",
+                    label: "Select Letter Head",
+                    fieldtype: "Link",
+                    options: "Letter Head",
                   },
+                {
+                    fieldname: "print_format",
+                    label: "Select Print Format",
+                    fieldtype: "Link",
+                    options: "Print Format",
+                    get_query: function () {
+                        return {
+                            filters: {
+                                "doc_type": cur_frm.doc.doctype // Show Print Formats specific to this Doctype
+                            }
+                        };
+                    }
+                },
                   {
                     fieldname: "template_select",
                     label: "Select Template",
-                    fieldtype: "Select",
-                    options: Object.keys(templateOptions), 
+                    fieldtype: "Link",
+                    options: "TempleteList", // The doctype where templates are stored
+                    get_query() {
+                      return {
+                        filters: {
+                          name: ["in", Object.values(templateOptions)], // Filtering only the fetched templates
+                        }
+                      };
+                    }
                   },
+                  
                 ],
                 primary_action_label: "Submit",
-                primary_action(values) {
+                primary_action: async (values) => {
+                  frappe.show_alert({ message: "Processing...", indicator: "orange" });
+                  console.log("LLLLLKKLKLKL",values.print_format, values.letterhead )
+                  function getPDFUrl() {
+                    let doctype = cur_frm.doc.doctype;
+                    let docname = cur_frm.doc.name;
+                    
+                    let printFormat = values.print_format || "Standard"; // Default to "Standard" if not selected
+                    let letterhead = values.letterhead || "No Letterhead"; // Default if not selected
+                    let noLetterhead = letterhead === "No Letterhead" ? 1 : 0; // Set `no_letterhead=1` if no letterhead is selected
+                
+                    let pdfUrl = `/api/method/frappe.utils.print_format.download_pdf?doctype=${doctype}&name=${docname}&format=${printFormat}&no_letterhead=${noLetterhead}&letterhead=${encodeURIComponent(letterhead)}&settings=%7B%7D&_lang=en`;
+                
+                    return pdfUrl;
+                  }
+                  let pdfUrl = getPDFUrl();
+                  console.log(pdfUrl);
+                  // let pdfUrl = `/api/method/frappe.utils.print_format.download_pdf?doctype=${doctype}&name=${docname}&format=Standard&no_letterhead=1&letterhead=No%20Letterhead&settings=%7B%7D&_lang=en`;
+                  console.log("PDF URL Loaded:", pdfUrl);
+              
+                  // Function to fetch PDF and convert it to base64
+                  async function fetchPdfBase64(url) {
+                      try {
+                          let response = await fetch(url);
+                          let blob = await response.blob();
+                          return new Promise((resolve, reject) => {
+                              let reader = new FileReader();
+                              reader.readAsDataURL(blob);
+                              reader.onloadend = () => resolve(reader.result.split(",")[1]);
+                              reader.onerror = (error) => reject(error);
+                          });
+                      } catch (error) {
+                          console.error("Error fetching PDF:", error);
+                          return null;
+                      }
+                  }
+              
+                  // Wait for the base64 conversion to complete
+                  let pdfBase64 = await fetchPdfBase64(pdfUrl);
+                  if (!pdfBase64) {
+                      frappe.msgprint({
+                          title: "Error",
+                          message: "Failed to fetch and convert PDF!",
+                          indicator: "red",
+                      });
+                      return;
+                  }
+              
+                  console.log("PDF Base64:", pdfBase64);
+              
                   let selectedLabel = values.template_select;
-                  let selectedValue = templateOptions[selectedLabel] || null; 
                   console.log("User Email:", email);
-                  let response = frappe.call({
-                    method: "esign_app.api.fetch_and_print_data",
-                    args: {
-                        custom_docname: values.custom_docname,
-                        selectedValue: selectedValue,
-                        pdfBase64: pdfBase64, 
-                        email: email
-                    }
+              
+                  // Show Frappe loading spinner
+                 
+              
+                  frappe.call({
+                      method: "esign_app.api.fetch_and_print_data",
+                      args: {
+                          custom_docname: values.custom_docname,
+                          selectedValue: selectedLabel,
+                          pdfBase64: pdfBase64,
+                          email: email,
+                      },
+                      callback: function (response) {
+                          if (response.message && response.message.status === 200) {
+                              frappe.hide_progress();
+                              frappe.msgprint({
+                                  title: "Success",
+                                  message: "Document Created Successfully!",
+                                  indicator: "green",
+                              });
+                          } else {
+                              frappe.msgprint({
+                                  title: "Error",
+                                  message: response.message?.error || "Something went wrong!",
+                                  indicator: "red",
+                              });
+                          }
+                      },
+                      error: function (error) {
+                          frappe.hide_progress();
+                          frappe.msgprint({
+                              title: "Error",
+                              message: "Failed to create the document!",
+                              indicator: "red",
+                          });
+                          console.error("API Call Failed:", error);
+                      },
                   });
-
+              
+                  // Hide the dialog after clicking submit
                   dialog.hide();
-                },
+              }
+              
+              
               });
 
               dialog.show();

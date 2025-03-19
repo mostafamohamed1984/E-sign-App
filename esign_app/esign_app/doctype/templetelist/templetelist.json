@@ -9,6 +9,7 @@
   "templete_title",
   "templete_created_at",
   "use_default_base_pdf",
+  "is_public",
   "column_break_qzdr",
   "templete_owner_email",
   "templete_owner_name",
@@ -69,11 +70,17 @@
    "fieldname": "use_default_base_pdf",
    "fieldtype": "Check",
    "label": "Use Default Base PDF"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_public",
+   "fieldtype": "Check",
+   "label": "Is Public"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-06 17:07:19.831872",
+ "modified": "2025-03-19 14:28:43.061541",
  "modified_by": "Administrator",
  "module": "Esign App",
  "name": "TempleteList",

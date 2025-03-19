@@ -499,14 +499,17 @@ def save_templete(templete_name, user_full_name, user_email):
 @frappe.whitelist(allow_guest=True)
 def get_templetes(user_mail):
     try:
-        templetes_list = frappe.get_all(
-            'TempleteList',
-            filters={'templete_owner_email': user_mail},
-            fields=['name','templete_title', 'templete_owner_email', 'templete_owner_name', 'templete_created_at']
-        )
+        templetes_list = frappe.db.sql("""
+            SELECT name, is_public, templete_title, templete_owner_email, templete_owner_name, templete_created_at, is_public
+            FROM `tabTempleteList`
+            WHERE templete_owner_email = %s OR is_public = 1
+        """, (user_mail), as_dict=True)
+
         return {'status': 200, 'data': templetes_list}
+
     except Exception as e:
         return {'status': 500, 'message': str(e)}
+
 # ++++ Get Templete End ++++++++++++
 
 @frappe.whitelist(allow_guest=True)
@@ -542,7 +545,7 @@ def delete_esign_templete(user_mail, name):
 # Templete APIs --------------------------------------------------------------------
 # ++++ Update Template ++++++++++++
 @frappe.whitelist(allow_guest=True)
-def update_template(templete_name,templete_json_data, base_pdf_data,use_default_base_pdf):
+def update_template(templete_name,templete_json_data, base_pdf_data,use_default_base_pdf,isPublic):
     try:
         templete_json_data = json.loads(templete_json_data)
         base_pdf_data = json.loads(base_pdf_data)
@@ -551,6 +554,7 @@ def update_template(templete_name,templete_json_data, base_pdf_data,use_default_
         doc.templete_json_data = templete_json_data
         doc.base_pdf_data = base_pdf_data
         doc.use_default_base_pdf = use_default_base_pdf
+        doc.is_public = isPublic
         message = 'Template Updated successfully'
         doc.save()
         return {'status': 200, 'message': message}
@@ -570,7 +574,8 @@ def get_template_json(templete_name):
             'status': 200,
             'templete_json_data': doc.templete_json_data,
             'base_pdf_data': doc.base_pdf_data,
-            'use_default_base_pdf' : doc.use_default_base_pdf
+            'use_default_base_pdf' : doc.use_default_base_pdf,
+            'is_public': doc.is_public
         }
         return response
 
@@ -1247,22 +1252,37 @@ def generate_and_sign_pdf(document_name):
 
 @frappe.whitelist()
 def fetch_and_print_data(custom_docname, selectedValue, pdfBase64, email):
-    """Fetch data using custom_docname and print 'message'."""
+    """Fetch data using custom_docname and save document details."""
 
-    print(split_pdf(pdfBase64))
-    template_data = get_template_data(selectedValue)
-    document_data = {
-        'doctype': 'DocumentList', 
-        'document_title': custom_docname,
-        'template_title': selectedValue,
-        'owner_email': email,
-        'document_json_data': template_data.get('templete_json_data', '[]'),
-        'base_pdf_datad': json.dumps(split_pdf(pdfBase64)),
-        'document_created_at': datetime.now()
-    }
-    document_doc = frappe.get_doc(document_data)
-    document_doc.insert()
-    return 0
+    try:
+        # Process the PDF only once
+        pdf_data = split_pdf(pdfBase64)
+
+        # Fetch template data
+        template_data = get_template_data(selectedValue)
+
+        # Create document record
+        document_data = {
+            'doctype': 'DocumentList', 
+            'document_title': custom_docname,
+            'template_title': selectedValue,
+            'owner_email': email,
+            'document_json_data': template_data.get('templete_json_data', '[]'),
+            'base_pdf_datad': json.dumps(pdf_data),
+            'document_created_at': datetime.now()
+        }
+        
+        # Insert into Frappe
+        document_doc = frappe.get_doc(document_data)
+        document_doc.insert(ignore_permissions=True)  # Ignore permissions to allow API inserts
+        
+        frappe.db.commit()  # Ensure changes are saved
+        
+        return {"status": 200, "message": "Document Created Successfully"}
+    
+    except Exception as e:
+        frappe.log_error(f"Error in fetch_and_print_data: {str(e)}", "eSign App")
+        return {"status": 500, "error": str(e)}
 
 @frappe.whitelist(allow_guest=True)
 def send_img_to_server(name,image_data,doc_name):
