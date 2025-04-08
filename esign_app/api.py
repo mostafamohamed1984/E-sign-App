@@ -1248,6 +1248,96 @@ def generate_and_sign_pdf(document_name):
 # ____________________________________________________________________________-
 
 # Send to eSign Button Apis &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+@frappe.whitelist(allow_guest=True)
+def send_document_data(to, subject, body, document_name, user_mail, isChecked):
+    try:
+        doc = frappe.get_doc("DocumentList", document_name)
+        
+        doc.assigned_users = to
+        doc.document_subject = subject
+        doc.description = body
+        doc.user_mail = user_mail
+        doc.isnoteditable = isChecked
+        
+        doc.save()
+        send_url_email(to, subject ,body)
+
+        return {'status': 200, 'message': 'Document Assigned Successfully'}
+    
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "send_document_data")
+        return {'status': 500, 'message': str(e)}
+# End ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+def return_to_data_list(updatedComponentData):
+    """Generate recipient structure from updatedComponentData."""
+
+    if isinstance(updatedComponentData, str):
+        updatedComponentData = json.loads(updatedComponentData)
+
+    recipient_dict = {}
+    count = 0
+
+    for component in updatedComponentData:
+        emails = component.get("assign", [])
+        for email in emails:
+            if email:  # Skip empty strings
+                recipient_dict[str(count)] = {
+                    "email": email,
+                    "status": "unseen"
+                }
+                count += 1
+
+    return recipient_dict
+
+
+@frappe.whitelist()
+def create_updated_document(custom_docname, selectedValue, pdfBase64, email, updatedComponentData):
+    """Create document using updated component JSON data and PDF."""
+
+    try:
+        # Convert updatedComponentData from JSON string to Python list (in case it’s sent as JSON string)
+        if isinstance(updatedComponentData, str):
+            updatedComponentData = json.loads(updatedComponentData)
+
+        # Process the PDF
+        pdf_data = split_pdf(pdfBase64)
+
+        # Create document record
+        document_data = {
+            'doctype': 'DocumentList', 
+            'document_title': custom_docname,
+            'template_title': selectedValue,
+            'owner_email': email,
+            'document_json_data': json.dumps(updatedComponentData),
+            'base_pdf_datad': json.dumps(pdf_data),
+            'document_created_at': datetime.now()
+        }
+
+        document_doc = frappe.get_doc(document_data)
+        document_doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+        to = return_to_data_list(updatedComponentData)
+        subject = f"New Document ({custom_docname} - {selectedValue}) - Action Required"
+        body = f"""
+                Hello,
+
+                A new document titled *{custom_docname}* based on the template *{selectedValue}* has been shared with you.
+
+                Please review and sign it at your earliest convenience.
+
+                Regards,  
+                Your Document Automation System
+                """
+        document_name=document_doc.name
+        isChecked= True
+        send_document_data(to, subject, body, document_name, email, isChecked)
+        return {"status": 200, "message": "Document Created Successfully"}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Create Updated Document Error")
+        return {"status": 500, "error": str(e)}
 
 
 @frappe.whitelist()
