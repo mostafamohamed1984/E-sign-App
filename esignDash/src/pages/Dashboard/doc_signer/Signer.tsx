@@ -26,6 +26,8 @@ import {BlobToBase64} from '../helper/BlobToBase64'
 import {Base64ToBlob} from '../helper/Base64ToBlob'
 import OpenSSLAllList from '../OpenSSL/OpenSSLAllList';
 import RejectDoc from '../../../components/RejectDoc';
+import { parseCertificate } from '../helper/certDataExtract'
+
 interface User {
   email: string;
   status: 'unseen' | 'open' | 'close';
@@ -1253,8 +1255,10 @@ return (
                   </td>
                   <td className="py-2 px-4 border-b border-gray-200">{component.pageNo + 1}</td>
                   <td className="py-2 px-4 border-b border-gray-200 max-w-[18vw]">
-                    {component.type === 'signature' && (
+                    {component.type === 'signature' && ( <>
                       <SignInput onSelect={handleSelectSignComp} onClickbtn={handleModelSignComp} />
+                      <button>Click</button>
+                    </>
                     )}
                     {component.type === 'image' && (
                       <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, component.id)} />

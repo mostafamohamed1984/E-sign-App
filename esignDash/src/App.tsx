@@ -46,26 +46,26 @@ const ProtectedRoute = ({ element }: { element: React.ReactElement }) => {
 };
 
 function App() {
-  const dispatch = useDispatch();
 
-  const handleStorageChange = () => {
-    const email = localStorage.getItem('persist:root') && JSON.parse(localStorage.getItem('persist:root') || '{}').email;
-    const fullName = localStorage.getItem('persist:root') && JSON.parse(localStorage.getItem('persist:root') || '{}').full_name;
-
-    // If there's no email or fullName in localStorage, it means the user has logged out in another tab
-    if (!email || !fullName) {
-      dispatch(clearUser()); // Dispatch logout action to update Redux store
-    }
-  };
-
-  useEffect(() => {
-    // Listen to changes in localStorage from other tabs
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [dispatch]);
+  /*
+    ---Multi Tab Blocker Code---
+  */
+  // const dispatch = useDispatch();
+  // const handleStorageChange = () => {
+  //   const email = localStorage.getItem('persist:root') && JSON.parse(localStorage.getItem('persist:root') || '{}').email;
+  //   const fullName = localStorage.getItem('persist:root') && JSON.parse(localStorage.getItem('persist:root') || '{}').full_name;
+  //   // If there's no email or fullName in localStorage, it means the user has logged out in another tab
+  //   if (!email || !fullName) {
+  //     dispatch(clearUser()); // Dispatch logout action to update Redux store
+  //   }
+  // };
+  // useEffect(() => {
+  //   // Listen to changes in localStorage from other tabs
+  //   window.addEventListener('storage', handleStorageChange);
+  //   return () => {
+  //     window.removeEventListener('storage', handleStorageChange);
+  //   };
+  // }, [dispatch]);
 
   const getSiteName = () => {
     // @ts-ignore
