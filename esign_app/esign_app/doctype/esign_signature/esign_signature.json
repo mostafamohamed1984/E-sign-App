@@ -9,6 +9,7 @@
   "section_break_mjvq",
   "user_name",
   "user_mail",
+  "customer",
   "column_break_ojtd",
   "sign_name",
   "openssl_name",
@@ -43,6 +44,12 @@
    "fieldtype": "Link",
    "label": "User Email",
    "options": "User"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
   },
   {
    "fieldname": "column_break_ojtd",
